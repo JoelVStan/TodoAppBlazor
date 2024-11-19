@@ -1,0 +1,102 @@
+﻿@page "/"
+@using TodoApp.Services;
+@inject ITodoService _todoService;
+@inject MarkdownExporter MarkdownExporter;
+
+<PageTitle>Todo List</PageTitle>
+
+<div class="border" style="padding: 20px;">
+    <h4>New Item</h4>
+    <TodoItemForm OnItemAdded="@ItemsChanged" />
+</div>
+
+<div class="border" style="padding: 20px; margin-top: 20px;">
+    <div style="display: flex; flex-direction: column">
+        @foreach (var todo in Todos)
+        {
+            <div style="display: flex; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center;margin-bottom: 10px;">
+                    <div class="@ItemClass(todo)" style="width: 280px; color: black">@todo.Text</div>
+                </div>
+                @if (todo.Completed)
+                {
+                    <div style="width: 120px">
+                        <button class="btn btn-primary" onclick="@(() => UncompleteItem(todo))">Uncomplete</button>
+                    </div>
+                }
+                @if (!todo.Completed)
+                {
+                    <div style="width: 120px">
+                        <button class="btn btn-primary" onclick="@(() => CompleteItem(todo))">Complete</button>
+                    </div>
+                }
+                <div>
+                    <button class="btn btn-danger" onclick="@(() => DeleteItem(todo))">Delete</button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<button class="btn btn-primary" @onclick="ExportContent">Export to Markdown</button>
+
+
+@code {
+    private IList<TodoItem> Todos { get; set; } = new List<TodoItem>();
+
+    protected override void OnInitialized()
+    {
+        Todos = _todoService.GetAll().ToList();
+    }
+
+    public string ItemClass(TodoItem item)
+    {
+        return item.Completed ? "item-completed" : "";
+    }
+
+    public void ItemsChanged()
+    {
+        Todos = _todoService.GetAll().ToList();
+        StateHasChanged();
+    }
+
+    public void DeleteItem(TodoItem item)
+    {
+        _todoService.Delete(item);
+        ItemsChanged();
+    }
+
+    public void CompleteItem(TodoItem item)
+    {
+        _todoService.Complete(item);
+        ItemsChanged();
+    }
+
+    public void UncompleteItem(TodoItem item)
+    {
+        _todoService.Uncomplete(item);
+        ItemsChanged();
+    }
+
+    private async Task ExportContent()
+    {
+        // Example content for Markdown
+        string content = @"
+# Project 1
+
+## Summary: 2/5 completed
+
+- Point 1
+- Point 2
+";
+
+        // Define the file path (e.g., wwwroot/exports/home.md)
+        string filePath = Path.Combine("wwwroot", "exports", "home.md");
+
+        // Export content to Markdown file
+        MarkdownExporter.ExportToMarkdown(content, filePath);
+
+        // Optional: Show a success message
+        Console.WriteLine($"Content exported to {filePath}");
+    }
+}
